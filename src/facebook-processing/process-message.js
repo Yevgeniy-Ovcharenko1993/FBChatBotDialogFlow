@@ -1,7 +1,6 @@
 const axios = require('axios');
 const dialogflow = require('dialogflow');
 const log = require('../logger')(__filename);
-const { createTask } = require('../template/button-templates');
 
 let sessionClient;
 let sessionPath;
@@ -24,26 +23,28 @@ try {
 }
 
 function sendTextMessage(userId, data) {
-  if (data === 'Create task') {
-    const headers = {
-      'Content-Type': 'application/json',
-    };
+  const headers = {
+    'Content-Type': 'application/json',
+  };
 
-    const response = {
-      recipient: {
-        id: userId,
-      },
-      message: createTask,
-    };
-    try {
-      axios.post(
-        `https://graph.facebook.com/v2.6/me/messages?access_token=${FACEBOOK_ACCESS_TOKEN}`,
-        response,
-        { headers },
-      );
-    } catch (error) {
-      log.error(error, 'FAILED TO SEND MESSAGE TO FACEBOOK CLIENT');
-    }
+  const response = {
+    messaging_type: 'RESPONSE',
+    recipient: {
+      id: userId,
+    },
+    message: {
+      text: data,
+    },
+  };
+
+  try {
+    axios.post(
+      `https://graph.facebook.com/v2.6/me/messages?access_token=${FACEBOOK_ACCESS_TOKEN}`,
+      response,
+      { headers },
+    );
+  } catch (error) {
+    log.error(error, 'FAILED TO SEND MESSAGE TO FACEBOOK CLIENT');
   }
 }
 
@@ -61,15 +62,13 @@ module.exports = async event => {
     },
   };
 
-  sendTextMessage(userId, 'Create task');
-
-  // sessionClient
-  //   .detectIntent(request)
-  //   .then(responses => {
-  //     const result = responses[0].queryResult;
-  //     return sendTextMessage(userId, result.fulfillmentText);
-  //   })
-  //   .catch(err => {
-  //     log.error(err, 'FAILED TO DETECT INTENT');
-  //   });
+  sessionClient
+    .detectIntent(request)
+    .then(responses => {
+      const result = responses[0].queryResult;
+      return sendTextMessage(userId, result.fulfillmentText);
+    })
+    .catch(err => {
+      log.error(err, 'FAILED TO DETECT INTENT');
+    });
 };
