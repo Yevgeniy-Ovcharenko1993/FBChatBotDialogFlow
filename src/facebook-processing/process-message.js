@@ -1,14 +1,14 @@
-const fetch = require('node-fetch');
+const axios = require('axios');
 const dialogflow = require('dialogflow');
 const log = require('../logger')(__filename);
-
-const projectId = 'yevhenii-rjhrsg';
-const sessionId = '123456';
-const languageCode = 'en-US';
+const { createTask } = require('../template/button-templates');
 
 let sessionClient;
 let sessionPath;
-
+const { FACEBOOK_ACCESS_TOKEN } = process.env;
+const projectId = 'yevhenii-rjhrsg';
+const sessionId = '123456';
+const languageCode = 'en-US';
 const config = {
   credentials: {
     private_key: process.env.DIALOGFLOW_PRIVATE_KEY,
@@ -23,32 +23,31 @@ try {
   log.error(error, 'FAILED TO CREATE SESSION CLIENT');
 }
 
-const { FACEBOOK_ACCESS_TOKEN } = process.env;
+function sendTextMessage(userId, data) {
+  if (data === 'Create task') {
+    const headers = {
+      'Content-Type': 'application/json',
+    };
 
-let sendTextMessage;
-
-try {
-  sendTextMessage = (userId, text) =>
-    fetch(`https://graph.facebook.com/v2.6/me/messages?access_token=${FACEBOOK_ACCESS_TOKEN}`, {
-      headers: {
-        'Content-Type': 'application/json',
+    const response = {
+      recipient: {
+        id: userId,
       },
-      method: 'POST',
-      body: JSON.stringify({
-        messaging_type: 'RESPONSE',
-        recipient: {
-          id: userId,
-        },
-        message: {
-          text,
-        },
-      }),
-    });
-} catch (error) {
-  log.error(error, 'FAILED TO SEND MESSAGE');
+      message: createTask,
+    };
+    try {
+      axios.post(
+        `https://graph.facebook.com/v2.6/me/messages?access_token=${FACEBOOK_ACCESS_TOKEN}`,
+        response,
+        { headers },
+      );
+    } catch (error) {
+      log.error(error, 'FAILED TO SEND MESSAGE TO FACEBOOK CLIENT');
+    }
+  }
 }
 
-module.exports = event => {
+module.exports = async event => {
   const userId = event.sender.id;
   const message = event.message.text;
 
@@ -62,13 +61,15 @@ module.exports = event => {
     },
   };
 
-  sessionClient
-    .detectIntent(request)
-    .then(responses => {
-      const result = responses[0].queryResult;
-      return sendTextMessage(userId, result.fulfillmentText);
-    })
-    .catch(err => {
-      log.error(err, 'FAILED TO DETECT INTENT');
-    });
+  sendTextMessage(userId, 'Create task');
+
+  // sessionClient
+  //   .detectIntent(request)
+  //   .then(responses => {
+  //     const result = responses[0].queryResult;
+  //     return sendTextMessage(userId, result.fulfillmentText);
+  //   })
+  //   .catch(err => {
+  //     log.error(err, 'FAILED TO DETECT INTENT');
+  //   });
 };
