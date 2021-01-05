@@ -46,7 +46,7 @@
   },
   "keywords": [],
   "dependencies": {
-    "axios": "^0.18.0",
+    "axios": "^0.21.1",
     "batch": "^0.6.1",
     "bcryptjs": "^2.4.3",
     "bluebird": "^3.5.3",
